@@ -5,9 +5,36 @@ import { Button } from '@patternfly/react-core';
 import PDFDocument from './components/PDFDocument';
 
 class DownloadButton extends React.Component {
-  state = {
+
+  constructor(props) {
+    super(props)
+    this.state = {
       asyncPages: []
-  };
+    };
+    this.updateAsyncPages = this.updateAsyncPages.bind(this);
+  }
+  
+  updateAsyncPages() {
+    const { asyncFunction } = this.props
+    if (asyncFunction) {
+      this.setState({
+          asyncPages: []
+      }, () => {
+        Promise.resolve(asyncFunction()).then(asyncPages => this.setState({
+            asyncPages
+        }));
+      });
+    }
+  }
+
+  componentDidMount() { 
+    const { showButton } = this.props
+
+    if (!showButton) {
+      this.updateAsyncPages();
+    }
+  }
+
   render() {
     console.log(new Date())
     const {
@@ -16,6 +43,7 @@ class DownloadButton extends React.Component {
         isPreview,
         asyncFunction,
         buttonProps,
+        showButton,
         ...props
     } = this.props;
 
@@ -27,15 +55,7 @@ class DownloadButton extends React.Component {
             </PDFViewer> 
           : asyncFunction 
             ? <React.Fragment>
-                <Button onClick={ () => {
-                    this.setState({
-                        asyncPages: []
-                    }, () => {
-                        Promise.resolve(asyncFunction()).then(asyncPages => this.setState({
-                            asyncPages
-                        }));
-                    });
-                }} { ...buttonProps }>{label}</Button>
+                { showButton && <Button onClick={this.updateAsyncPages} { ...buttonProps }>{label}</Button> }
                 {this.state.asyncPages.length > 0 && (
                     <BlobProvider document={<PDFDocument { ...props } pages={this.state.asyncPages} />}>
                         {({ blob }) => {
@@ -63,7 +83,7 @@ class DownloadButton extends React.Component {
               >
                 {label}
               </PDFDownloadLink> 
-      }
+        }
       </React.Fragment>
     );
   }
@@ -74,14 +94,17 @@ DownloadButton.propTypes = {
     fileName: PropTypes.string,
     isPreview: PropTypes.bool,
     label: PropTypes.node,
-    asyncFunction: PropTypes.func
+    asyncFunction: PropTypes.func,
+    showButton: PropTypes.bool,
+
 };
 
 DownloadButton.defaultProps = {
     ...PDFDocument.defaultProps,
     fileName: '',
     label: 'Download PDF',
-    isPreview: false
+    isPreview: false,
+    showButton: true
 };
 
 export default DownloadButton;
