@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
 import { PDFDownloadLink, PDFViewer, BlobProvider } from '@react-pdf/renderer';
 import { Button } from '@patternfly/react-core';
+import { addNotification } from '@redhat-cloud-services/frontend-components-notifications/esm/actions';
 import PDFDocument from './components/PDFDocument';
 
 class DownloadButton extends React.Component {
@@ -37,6 +39,8 @@ class DownloadButton extends React.Component {
 
     render() {
         const {
+            addNotification,
+            notification,
             fileName,
             label,
             isPreview,
@@ -57,7 +61,11 @@ class DownloadButton extends React.Component {
                             { showButton && <Button onClick={this.updateAsyncPages} { ...buttonProps }>{label}</Button> }
                             {this.state.asyncPages.length > 0 && (
                                 <BlobProvider document={<PDFDocument { ...props } pages={this.state.asyncPages} />}>
-                                    {({ blob }) => {
+                                    {({ blob, loading }) => {
+                                        if (loading && notification) {
+                                            addNotification(notification)
+                                        }
+
                                         if (blob) {
                                             const link = document.createElement('a');
                                             link.href = URL.createObjectURL(blob);
@@ -94,7 +102,13 @@ DownloadButton.propTypes = {
     isPreview: PropTypes.bool,
     label: PropTypes.node,
     asyncFunction: PropTypes.func,
-    showButton: PropTypes.bool
+    showButton: PropTypes.bool,
+    notification: PropTypes.shape({
+        variant: PropTypes.string,
+        dismissable: PropTypes.bool,
+        title: PropTypes.string,
+        description: PropTypes.string
+    }),
 };
 
 DownloadButton.defaultProps = {
@@ -105,4 +119,8 @@ DownloadButton.defaultProps = {
     showButton: true
 };
 
-export default DownloadButton;
+const mapDispatchToProps = dispatch => ({
+    addNotification: notification => dispatch(addNotification(notification))
+});
+
+export default connect(() => ({}), mapDispatchToProps)(DownloadButton)
